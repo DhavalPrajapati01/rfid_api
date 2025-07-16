@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Subscription Plans</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    body {
+      background-color: #0d1b2a;
+      color: #e0e1dd;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 40px;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #00b4d8;
+      margin-bottom: 30px;
+    }
+    .plans {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+    .plan {
+      background: #1b263b;
+      padding: 25px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 0 12px rgba(0, 180, 216, 0.3);
+      transition: transform 0.3s ease;
+    }
+    .plan:hover {
+      transform: scale(1.05);
+    }
+    .plan h2 {
+      color: #caf0f8;
+    }
+    .price {
+      font-size: 20px;
+      font-weight: bold;
+      color: #90e0ef;
+      margin: 10px 0;
+    }
+    .btn {
+      padding: 10px 20px;
+      background-color: #00b4d8;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.3s ease;
+    }
+    .btn:hover {
+      background-color: #0077b6;
+    }
+    .terms {
+      max-width: 800px;
+      margin: 50px auto;
+      background: #1b263b;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0, 180, 216, 0.3);
+    }
+    .terms h2 {
+      color: #ade8f4;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Choose Your Subscription Plan</h1>
+  <div class="plans">
+    <div class="plan">
+      <h2>Free Trial (14 Days)</h2>
+      <p class="price">Rs. 1</p>
+      <p>Access all features for 14 days.</p>
+      <button class="btn" onclick="pay(1, 'free_trial')">Start Trial</button>
+    </div>
+    <div class="plan">
+      <h2>Basic - 1 Month</h2>
+      <p class="price">Rs. 1500</p>
+      <p>Best for individuals or small setups.</p>
+      <button class="btn" onclick="pay(1, 'basic')">Subscribe</button>
+    </div>
+    <div class="plan">
+      <h2>Standard - 6 Months</h2>
+      <p class="price">Rs. 5999</p>
+      <p>Recommended for growing teams.</p>
+      <button class="btn" onclick="pay(1, 'standard')">Subscribe</button>
+    </div>
+    <div class="plan">
+      <h2>Premium - 12 Months</h2>
+      <p class="price">Rs. 10000</p>
+      <p>Perfect for businesses and organizations.</p>
+      <button class="btn" onclick="pay(1, 'premium')">Subscribe</button>
+    </div>
+  </div>
+
+  <div class="terms">
+    <h2>Terms & Conditions</h2>
+    <p>1. Payments are non-refundable.</p>
+    <p>2. You can upgrade/cancel anytime.</p>
+    <p>3. Free plan has limited access.</p>
+    <p>4. Contact our support for help.</p>
+  </div>
+
+  <script>
+    function pay(userId, plan) {
+      fetch('create_order.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `user_id=${userId}&plan=${plan}`
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status !== 'success') throw new Error(data.message || 'Order failed');
+        
+        var options = {
+          key: data.key,
+          amount: data.amount * 100,
+          currency: 'INR',
+          name: 'Dprofiz',
+          description: plan === 'free_trial' ? '14-Day Trial' : 'Subscription Payment',
+          order_id: data.order_id,
+          handler: function (response) {
+            verifyPayment(data.order_id, response.razorpay_payment_id);
+          },
+          prefill: { email: 'user@example.com' },
+          theme: { color: '#00b4d8' }
+        };
+        new Razorpay(options).open();
+      })
+      .catch(err => alert("Error: " + err.message));
+    }
+
+    function verifyPayment(order_id, payment_id) {
+      fetch("verify_payment.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `order_id=${order_id}&payment_id=${payment_id}`
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success") {
+          alert("Payment successful! Subscription activated.");
+          window.location.href = "success.html";
+        } else {
+          alert("Payment failed: " + data.message);
+        }
+      })
+      .catch(err => alert("Verification failed. Try again."));
+    }
+  </script>
+</body>
+</html>
